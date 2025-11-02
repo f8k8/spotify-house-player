@@ -5,6 +5,13 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+// Check Node.js version (fetch API requires Node.js 18+)
+const nodeVersion = process.versions.node.split('.')[0];
+if (parseInt(nodeVersion) < 18) {
+  console.error('Error: Node.js 18 or higher is required (for native fetch API support)');
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -284,10 +291,7 @@ async function launchPlayerInstance(accountName, accessToken, audioDestination) 
   const browser = await puppeteer.launch({
     headless: true,
     args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
       '--autoplay-policy=no-user-gesture-required',
-      '--disable-web-security',
       audioDestination ? `--audio-output-device=${audioDestination}` : ''
     ].filter(Boolean)
   });

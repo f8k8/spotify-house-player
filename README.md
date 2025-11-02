@@ -13,7 +13,7 @@ A Node.js application that uses the Spotify Web Playback SDK in headless browser
 
 ## Prerequisites
 
-- Node.js (v16 or higher)
+- Node.js (v18 or higher) - Required for native fetch API support
 - A Spotify Premium account (required for Web Playback SDK)
 - Spotify Developer App credentials (Client ID and Client Secret)
 
