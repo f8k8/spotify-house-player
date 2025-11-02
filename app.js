@@ -133,19 +133,19 @@ app.get('/callback', async (req, res) => {
       accounts[accountName].redirectUri
     );
 
-    // Store tokens - safely update existing object properties to prevent prototype pollution
-    const account = accounts[accountName];
-    // Validate token data to prevent prototype pollution
-    if (tokenData && typeof tokenData.access_token === 'string') {
-      account.token = tokenData.access_token;
-    }
-    if (tokenData && typeof tokenData.refresh_token === 'string') {
-      account.refreshToken = tokenData.refresh_token;
-    }
-    account.authenticated = true;
-    if (tokenData && typeof tokenData.expires_in === 'number') {
-      account.expiresAt = Date.now() + (tokenData.expires_in * 1000);
-    }
+    // Store tokens - safely update by creating a new object to prevent prototype pollution
+    const accessToken = tokenData && typeof tokenData.access_token === 'string' ? tokenData.access_token : null;
+    const refreshToken = tokenData && typeof tokenData.refresh_token === 'string' ? tokenData.refresh_token : null;
+    const expiresIn = tokenData && typeof tokenData.expires_in === 'number' ? tokenData.expires_in : 3600;
+    
+    // Update account with validated values
+    accounts[accountName] = {
+      ...accounts[accountName],
+      token: accessToken,
+      refreshToken: refreshToken,
+      authenticated: true,
+      expiresAt: Date.now() + (expiresIn * 1000)
+    };
 
     saveTokens();
 
