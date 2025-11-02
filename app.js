@@ -336,7 +336,8 @@ async function launchPlayerInstance(accountName, accessToken, audioDestination) 
     args: [
       '--autoplay-policy=no-user-gesture-required',
       audioDestination ? `--audio-output-device=${audioDestination}` : ''
-    ].filter(Boolean)
+    ].filter(Boolean),
+    ignoreDefaultArgs: ["--mute-audio", "--hide-scrollbars"],
   });
 
   const page = await browser.newPage();
