@@ -162,17 +162,14 @@ app.get('/api/accounts/:name/token', async (req, res) => {
       // Update account with new token
       const accessToken = tokenData && typeof tokenData.access_token === 'string' ? tokenData.access_token : null;
       const expiresIn = tokenData && typeof tokenData.expires_in === 'number' ? tokenData.expires_in : 3600;
+      const newRefreshToken = tokenData && typeof tokenData.refresh_token === 'string' ? tokenData.refresh_token : null;
       
       accounts[name] = {
         ...accounts[name],
         token: accessToken,
-        expiresAt: Date.now() + (expiresIn * 1000)
+        expiresAt: Date.now() + (expiresIn * 1000),
+        ...(newRefreshToken && { refreshToken: newRefreshToken })
       };
-
-      // If a new refresh token is provided, update it
-      if (tokenData.refresh_token && typeof tokenData.refresh_token === 'string') {
-        accounts[name].refreshToken = tokenData.refresh_token;
-      }
 
       saveTokens();
 
