@@ -1,5 +1,5 @@
 const express = require('express');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
@@ -8,6 +8,20 @@ require('dotenv').config();
 const nodeVersion = process.versions.node.split('.')[0];
 if (parseInt(nodeVersion) < 18) {
   console.error('Error: Node.js 18 or higher is required (for native fetch API support)');
+  process.exit(1);
+}
+
+// Check Chrome executable path is configured
+if (!process.env.CHROME_EXECUTABLE_PATH) {
+  console.error('Error: CHROME_EXECUTABLE_PATH environment variable is not set');
+  console.error('Please set CHROME_EXECUTABLE_PATH in your .env file to the path of your Chrome/Chromium executable');
+  process.exit(1);
+}
+
+// Check if Chrome executable exists
+if (!fs.existsSync(process.env.CHROME_EXECUTABLE_PATH)) {
+  console.error(`Error: Chrome executable not found at: ${process.env.CHROME_EXECUTABLE_PATH}`);
+  console.error('Please verify the CHROME_EXECUTABLE_PATH in your .env file');
   process.exit(1);
 }
 
@@ -317,6 +331,7 @@ async function launchPlayerInstance(accountName, accessToken, audioDestination) 
   const headless = process.env.DEBUG_HEADLESS !== 'false';
   
   const browser = await puppeteer.launch({
+    executablePath: process.env.CHROME_EXECUTABLE_PATH,
     headless: headless,
     args: [
       '--autoplay-policy=no-user-gesture-required',

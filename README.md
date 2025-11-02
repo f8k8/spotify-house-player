@@ -14,6 +14,7 @@ A Node.js application that uses the Spotify Web Playback SDK in headless browser
 ## Prerequisites
 
 - Node.js (v18 or higher) - Required for native fetch API support
+- Chrome or Chromium browser installed on your system
 - A Spotify Premium account (required for Web Playback SDK)
 - Spotify Developer App credentials (Client ID and Client Secret)
 
@@ -32,15 +33,19 @@ A Node.js application that uses the Spotify Web Playback SDK in headless browser
 npm install
 ```
 
-### 3. Configure Environment (Optional)
+### 3. Configure Environment
 
-Copy `.env.example` to `.env` and customize if needed:
+Copy `.env.example` to `.env` and customize:
 
 ```bash
 cp .env.example .env
 ```
 
 Available environment variables:
+- `CHROME_EXECUTABLE_PATH` - **Required** - Path to Chrome/Chromium executable
+  - Linux: `/usr/bin/google-chrome` or `/usr/bin/chromium`
+  - macOS: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
+  - Windows: `C:\Program Files\Google\Chrome\Application\chrome.exe`
 - `PORT` - Server port (default: 3000)
 - `DEBUG_HEADLESS` - Set to `false` to run Chrome instances in visible windows for debugging (default: true)
 
@@ -164,15 +169,24 @@ This is useful for:
 
 **Note:** When `DEBUG_HEADLESS=false`, you need a display environment (not suitable for headless servers).
 
-### Puppeteer Browser Issues
+### Chrome Executable Path Issues
 
-If you encounter issues with Puppeteer not finding a browser, you may need to install Chromium:
+This application uses `puppeteer-core`, which requires you to specify the path to an installed Chrome or Chromium browser via the `CHROME_EXECUTABLE_PATH` environment variable.
 
+If you encounter issues with Chrome not being found:
+
+1. Verify that Chrome or Chromium is installed on your system
+2. Locate the Chrome executable path:
+   - Linux: Try `/usr/bin/google-chrome`, `/usr/bin/chromium`, or `/usr/bin/chromium-browser`
+   - macOS: Try `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
+   - Windows: Try `C:\Program Files\Google\Chrome\Application\chrome.exe` or `C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`
+3. Update the `CHROME_EXECUTABLE_PATH` in your `.env` file with the correct path
+4. Restart the server
+
+To find Chrome on Linux/macOS:
 ```bash
-npx puppeteer browsers install chrome
+which google-chrome chromium chromium-browser
 ```
-
-Alternatively, you can use the system Chrome by setting the `executablePath` option in the Puppeteer launch configuration.
 
 ### Audio Not Playing
 
