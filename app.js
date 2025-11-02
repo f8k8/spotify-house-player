@@ -187,11 +187,11 @@ app.get('/callback', async (req, res) => {
 /**
  * Launch player instance for an account
  * POST /api/players/:name/launch
- * Body: { audioDestination: string }
+ * Body: { accountName: string, displayName: string, audioDestination: string }
  */
 app.post('/api/players/:name/launch', async (req, res) => {
   const { name } = req.params;
-  const { audioDestination } = req.body;
+  const { accountName, displayName, audioDestination } = req.body;
 
   const account = accounts[name];
 
@@ -209,16 +209,18 @@ app.post('/api/players/:name/launch', async (req, res) => {
 
   try {
     // Launch headless browser with player
-    const browser = await launchPlayerInstance(name, account.token, audioDestination);
+    const browser = await launchPlayerInstance(name, account.token, displayName, audioDestination);
     playerInstances.set(name, {
       browser,
       audioDestination: audioDestination || 'default',
+      displayName: displayName || name,
       launchedAt: new Date()
     });
 
     res.json({
       message: 'Player instance launched successfully',
       name,
+      displayName: displayName || name,
       audioDestination: audioDestination || 'default'
     });
   } catch (error) {
@@ -257,6 +259,7 @@ app.delete('/api/players/:name', async (req, res) => {
 app.get('/api/players', (req, res) => {
   const players = Array.from(playerInstances.entries()).map(([name, instance]) => ({
     name,
+    displayName: instance.displayName || name,
     audioDestination: instance.audioDestination,
     launchedAt: instance.launchedAt
   }));
@@ -326,7 +329,7 @@ async function exchangeCodeForToken(code, clientId, clientSecret, redirectUri) {
 }
 
 // Helper function to launch a player instance in headless browser
-async function launchPlayerInstance(accountName, accessToken, audioDestination) {
+async function launchPlayerInstance(accountName, accessToken, displayName, audioDestination) {
   // Allow running in non-headless mode for debugging
   const headless = process.env.DEBUG_HEADLESS !== 'false';
   
@@ -348,10 +351,11 @@ async function launchPlayerInstance(accountName, accessToken, audioDestination) 
   }, accessToken);
 
   // Navigate to player page
-  const playerUrl = `http://localhost:${PORT}/player.html?account=${accountName}`;
+  const playerName = displayName || accountName;
+  const playerUrl = `http://localhost:${PORT}/player.html?playerName=${encodeURIComponent(playerName)}`;
   await page.goto(playerUrl, { waitUntil: 'networkidle2' });
 
-  console.log(`Player instance launched for account: ${accountName}`);
+  console.log(`Player instance launched for account: ${accountName} with display name: ${playerName}`);
 
   return browser;
 }

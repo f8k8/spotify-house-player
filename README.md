@@ -88,11 +88,13 @@ Start a headless browser player for the account:
 curl -X POST http://localhost:3000/api/players/living-room/launch \
   -H "Content-Type: application/json" \
   -d '{
+    "accountName": "living-room",
+    "displayName": "Living Room Speaker",
     "audioDestination": "default"
   }'
 ```
 
-The player will now be available in your Spotify app as a device named "Spotify House Player - living-room".
+The player will now be available in your Spotify app as a device with the specified display name (e.g., "Living Room Speaker").
 
 ### 4. Control Playback
 
