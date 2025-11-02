@@ -135,10 +135,17 @@ app.get('/callback', async (req, res) => {
 
     // Store tokens - safely update existing object properties to prevent prototype pollution
     const account = accounts[accountName];
-    account.token = tokenData.access_token;
-    account.refreshToken = tokenData.refresh_token;
+    // Validate token data to prevent prototype pollution
+    if (tokenData && typeof tokenData.access_token === 'string') {
+      account.token = tokenData.access_token;
+    }
+    if (tokenData && typeof tokenData.refresh_token === 'string') {
+      account.refreshToken = tokenData.refresh_token;
+    }
     account.authenticated = true;
-    account.expiresAt = Date.now() + (tokenData.expires_in * 1000);
+    if (tokenData && typeof tokenData.expires_in === 'number') {
+      account.expiresAt = Date.now() + (tokenData.expires_in * 1000);
+    }
 
     saveTokens();
 
