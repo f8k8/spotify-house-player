@@ -133,19 +133,26 @@ app.get('/callback', async (req, res) => {
       accounts[accountName].redirectUri
     );
 
-    // Store tokens
-    accounts[accountName].token = tokenData.access_token;
-    accounts[accountName].refreshToken = tokenData.refresh_token;
-    accounts[accountName].authenticated = true;
-    accounts[accountName].expiresAt = Date.now() + (tokenData.expires_in * 1000);
+    // Store tokens - safely update existing object properties to prevent prototype pollution
+    const account = accounts[accountName];
+    account.token = tokenData.access_token;
+    account.refreshToken = tokenData.refresh_token;
+    account.authenticated = true;
+    account.expiresAt = Date.now() + (tokenData.expires_in * 1000);
 
     saveTokens();
 
+    // Escape account name to prevent XSS
+    const escapedAccountName = escapeHtml(accountName);
+
     res.send(`
       <html>
+        <head>
+          <meta charset="UTF-8">
+        </head>
         <body>
           <h1>Authentication Successful!</h1>
-          <p>Account "${accountName}" has been authenticated.</p>
+          <p>Account "${escapedAccountName}" has been authenticated.</p>
           <p>You can close this window and launch the player instance.</p>
         </body>
       </html>
@@ -234,6 +241,18 @@ app.get('/api/players', (req, res) => {
   }));
   res.json({ players });
 });
+
+// Helper function to escape HTML entities to prevent XSS
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
 
 // Helper function to generate Spotify authorization URL
 function generateAuthUrl(clientId, redirectUri, accountName) {

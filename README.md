@@ -140,6 +140,8 @@ To list available audio devices on your system, you can use system-specific comm
 - The `.gitignore` file is configured to exclude sensitive files
 - Client secrets should be kept secure and not shared
 - This is intended for personal/private use on trusted networks
+- For production use, consider adding rate limiting middleware (e.g., express-rate-limit) to prevent abuse
+- XSS protection is implemented for user-provided values in HTML responses
 
 ## Troubleshooting
 
