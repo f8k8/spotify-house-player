@@ -313,8 +313,11 @@ async function exchangeCodeForToken(code, clientId, clientSecret, redirectUri) {
 
 // Helper function to launch a player instance in headless browser
 async function launchPlayerInstance(accountName, accessToken, audioDestination) {
+  // Allow running in non-headless mode for debugging
+  const headless = process.env.DEBUG_HEADLESS !== 'false';
+  
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: headless,
     args: [
       '--autoplay-policy=no-user-gesture-required',
       audioDestination ? `--audio-output-device=${audioDestination}` : ''

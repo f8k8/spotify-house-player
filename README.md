@@ -40,6 +40,10 @@ Copy `.env.example` to `.env` and customize if needed:
 cp .env.example .env
 ```
 
+Available environment variables:
+- `PORT` - Server port (default: 3000)
+- `DEBUG_HEADLESS` - Set to `false` to run Chrome instances in visible windows for debugging (default: true)
+
 ### 4. Start the Server
 
 ```bash
@@ -144,6 +148,21 @@ To list available audio devices on your system, you can use system-specific comm
 - XSS protection is implemented for user-provided values in HTML responses
 
 ## Troubleshooting
+
+### Debugging with Visible Browser Windows
+
+For debugging purposes, you can run the Chrome instances in visible windows instead of headless mode:
+
+1. Set the `DEBUG_HEADLESS` environment variable to `false` in your `.env` file
+2. Restart the server
+3. Launch a player instance - you'll see the Chrome window open and the player page load
+
+This is useful for:
+- Debugging player initialization issues
+- Inspecting the Web Playback SDK state
+- Viewing console logs in the browser's DevTools
+
+**Note:** When `DEBUG_HEADLESS=false`, you need a display environment (not suitable for headless servers).
 
 ### Puppeteer Browser Issues
 
