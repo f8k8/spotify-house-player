@@ -7,14 +7,19 @@
     "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["spotify", "web-playback-sdk", "puppeteer", "headless-browser", "music-player"],
+  "keywords": [
+    "spotify",
+    "web-playback-sdk",
+    "puppeteer",
+    "headless-browser",
+    "music-player"
+  ],
   "author": "",
   "license": "ISC",
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "body-parser": "^2.2.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "puppeteer": "^24.27.0"
