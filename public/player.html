@@ -49,7 +49,7 @@
     <h1>🎵 Spotify Web Playback SDK</h1>
     <div id="status" class="status">Initializing...</div>
     <div class="info">
-      <div class="label">Account:</div>
+      <div class="label">Player Name:</div>
       <div id="account-name">Loading...</div>
     </div>
     <div class="info">
@@ -64,10 +64,10 @@
 
   <script src="https://sdk.scdn.co/spotify-player.js"></script>
   <script>
-    // Get account name from URL
+    // Get player name from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const accountName = urlParams.get('account') || 'Unknown';
-    document.getElementById('account-name').textContent = accountName;
+    const playerName = urlParams.get('playerName') || 'Unknown';
+    document.getElementById('account-name').textContent = playerName;
 
     // Get access token from window context (set by puppeteer)
     const token = window.SPOTIFY_ACCESS_TOKEN;
@@ -98,7 +98,7 @@
       updateStatus('Spotify SDK loaded, creating player...', 'success');
 
       const player = new Spotify.Player({
-        name: `Spotify House Player - ${accountName}`,
+        name: playerName,
         getOAuthToken: cb => { cb(token); },
         volume: 0.5
       });
