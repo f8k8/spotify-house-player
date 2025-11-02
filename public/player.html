@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotify Web Playback SDK Player</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #191414;
+      color: #ffffff;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #282828;
+      border-radius: 8px;
+    }
+    h1 {
+      color: #1DB954;
+      text-align: center;
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      background-color: #333333;
+    }
+    .status.success {
+      background-color: #1DB954;
+      color: #000000;
+    }
+    .status.error {
+      background-color: #E22134;
+    }
+    .info {
+      margin: 10px 0;
+    }
+    .label {
+      font-weight: bold;
+      color: #1DB954;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎵 Spotify Web Playback SDK</h1>
+    <div id="status" class="status">Initializing...</div>
+    <div class="info">
+      <div class="label">Account:</div>
+      <div id="account-name">Loading...</div>
+    </div>
+    <div class="info">
+      <div class="label">Device ID:</div>
+      <div id="device-id">Not connected</div>
+    </div>
+    <div class="info">
+      <div class="label">Player State:</div>
+      <div id="player-state">Not initialized</div>
+    </div>
+  </div>
+
+  <script src="https://sdk.scdn.co/spotify-player.js"></script>
+  <script>
+    // Get account name from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const accountName = urlParams.get('account') || 'Unknown';
+    document.getElementById('account-name').textContent = accountName;
+
+    // Get access token from window context (set by puppeteer)
+    const token = window.SPOTIFY_ACCESS_TOKEN;
+
+    if (!token) {
+      updateStatus('Error: No access token provided', 'error');
+    } else {
+      updateStatus('Access token loaded, initializing player...', 'success');
+    }
+
+    function updateStatus(message, type = '') {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = message;
+      statusEl.className = 'status ' + type;
+      console.log('[Status]', message);
+    }
+
+    function updateDeviceId(deviceId) {
+      document.getElementById('device-id').textContent = deviceId || 'Not connected';
+    }
+
+    function updatePlayerState(state) {
+      document.getElementById('player-state').textContent = state;
+    }
+
+    // Spotify Web Playback SDK initialization
+    window.onSpotifyWebPlaybackSDKReady = () => {
+      updateStatus('Spotify SDK loaded, creating player...', 'success');
+
+      const player = new Spotify.Player({
+        name: `Spotify House Player - ${accountName}`,
+        getOAuthToken: cb => { cb(token); },
+        volume: 0.5
+      });
+
+      // Error handling
+      player.addListener('initialization_error', ({ message }) => {
+        console.error('Initialization Error:', message);
+        updateStatus(`Initialization Error: ${message}`, 'error');
+      });
+
+      player.addListener('authentication_error', ({ message }) => {
+        console.error('Authentication Error:', message);
+        updateStatus(`Authentication Error: ${message}`, 'error');
+      });
+
+      player.addListener('account_error', ({ message }) => {
+        console.error('Account Error:', message);
+        updateStatus(`Account Error: ${message}`, 'error');
+      });
+
+      player.addListener('playback_error', ({ message }) => {
+        console.error('Playback Error:', message);
+        updateStatus(`Playback Error: ${message}`, 'error');
+      });
+
+      // Ready
+      player.addListener('ready', ({ device_id }) => {
+        console.log('Ready with Device ID', device_id);
+        updateStatus('Player ready! Device registered with Spotify.', 'success');
+        updateDeviceId(device_id);
+        updatePlayerState('Ready');
+      });
+
+      // Not Ready
+      player.addListener('not_ready', ({ device_id }) => {
+        console.log('Device ID has gone offline', device_id);
+        updateStatus('Device offline', 'error');
+        updatePlayerState('Not Ready');
+      });
+
+      // Player state changed
+      player.addListener('player_state_changed', (state) => {
+        if (!state) {
+          updatePlayerState('No active playback');
+          return;
+        }
+
+        console.log('Player State Changed:', state);
+        
+        const track = state.track_window.current_track;
+        const isPlaying = !state.paused;
+        
+        updatePlayerState(
+          isPlaying 
+            ? `Playing: ${track.name} by ${track.artists.map(a => a.name).join(', ')}` 
+            : `Paused: ${track.name}`
+        );
+      });
+
+      // Connect to the player
+      player.connect().then(success => {
+        if (success) {
+          console.log('Successfully connected to Spotify!');
+          updateStatus('Connected to Spotify!', 'success');
+        } else {
+          console.error('Failed to connect to Spotify');
+          updateStatus('Failed to connect to Spotify', 'error');
+        }
+      });
+
+      // Keep reference to player
+      window.spotifyPlayer = player;
+    };
+
+    // Log that we're waiting for SDK
+    console.log('Waiting for Spotify Web Playback SDK to load...');
+  </script>
+</body>
+</html>
