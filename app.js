@@ -127,6 +127,64 @@ app.get('/api/accounts/:name', (req, res) => {
 });
 
 /**
+ * Get access token for an account (refreshes if expired)
+ * GET /api/accounts/:name/token
+ */
+app.get('/api/accounts/:name/token', async (req, res) => {
+  const { name } = req.params;
+  const account = accounts[name];
+
+  if (!account) {
+    return res.status(404).json({ error: 'Account not found' });
+  }
+
+  if (!account.authenticated || !account.token) {
+    return res.status(400).json({ error: 'Account not authenticated' });
+  }
+
+  // Check if token is expired or about to expire (within 5 minutes)
+  const now = Date.now();
+  const bufferTime = 5 * 60 * 1000; // 5 minutes in milliseconds
+  
+  if (account.expiresAt && (now + bufferTime) >= account.expiresAt) {
+    // Token is expired or about to expire, refresh it
+    if (!account.refreshToken) {
+      return res.status(400).json({ error: 'No refresh token available' });
+    }
+
+    try {
+      const tokenData = await refreshAccessToken(
+        account.refreshToken,
+        account.clientId,
+        account.clientSecret
+      );
+
+      // Update account with new token
+      const accessToken = tokenData && typeof tokenData.access_token === 'string' ? tokenData.access_token : null;
+      const expiresIn = tokenData && typeof tokenData.expires_in === 'number' ? tokenData.expires_in : 3600;
+      const newRefreshToken = tokenData && typeof tokenData.refresh_token === 'string' ? tokenData.refresh_token : null;
+      
+      accounts[name] = {
+        ...accounts[name],
+        token: accessToken,
+        expiresAt: Date.now() + (expiresIn * 1000),
+        ...(newRefreshToken && { refreshToken: newRefreshToken })
+      };
+
+      saveTokens();
+
+      return res.json({ token: accessToken });
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      return res.status(500).json({ error: 'Failed to refresh token', details: error.message });
+    }
+  }
+
+  // Token is still valid, return it
+  res.json({ token: account.token });
+});
+
+/**
  * Callback endpoint for OAuth
  * GET /callback?code=...&state=...
  */
@@ -328,6 +386,34 @@ async function exchangeCodeForToken(code, clientId, clientSecret, redirectUri) {
   return await response.json();
 }
 
+// Helper function to refresh an access token
+async function refreshAccessToken(refreshToken, clientId, clientSecret) {
+  const tokenUrl = 'https://accounts.spotify.com/api/token';
+  
+  const params = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken
+  });
+
+  const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+  const response = await fetch(tokenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${authHeader}`
+    },
+    body: params.toString()
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Token refresh failed: ${error}`);
+  }
+
+  return await response.json();
+}
+
 // Helper function to launch a player instance in headless browser
 async function launchPlayerInstance(accountName, accessToken, displayName, audioDestination) {
   // Allow running in non-headless mode for debugging
@@ -352,7 +438,7 @@ async function launchPlayerInstance(accountName, accessToken, displayName, audio
 
   // Navigate to player page
   const playerName = displayName || accountName;
-  const playerUrl = `http://localhost:${PORT}/player.html?playerName=${encodeURIComponent(playerName)}`;
+  const playerUrl = `http://localhost:${PORT}/player.html?playerName=${encodeURIComponent(playerName)}&accountName=${encodeURIComponent(accountName)}`;
   await page.goto(playerUrl, { waitUntil: 'networkidle2' });
 
   console.log(`Player instance launched for account: ${accountName} with display name: ${playerName}`);

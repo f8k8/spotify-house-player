@@ -67,12 +67,13 @@
     // Get player name from URL
     const urlParams = new URLSearchParams(window.location.search);
     const playerName = urlParams.get('playerName') || 'Unknown';
+    const accountName = urlParams.get('accountName') || 'Unknown';
     document.getElementById('account-name').textContent = playerName;
 
     // Get access token from window context (set by puppeteer)
-    const token = window.SPOTIFY_ACCESS_TOKEN;
+    const initialToken = window.SPOTIFY_ACCESS_TOKEN;
 
-    if (!token) {
+    if (!initialToken) {
       updateStatus('Error: No access token provided', 'error');
     } else {
       updateStatus('Access token loaded, initializing player...', 'success');
@@ -93,13 +94,29 @@
       document.getElementById('player-state').textContent = state;
     }
 
+    // Function to get OAuth token from backend
+    async function getOAuthToken(cb) {
+      try {
+        const response = await fetch(`/api/accounts/${accountName}/token`);
+        if (!response.ok) {
+          throw new Error(`Failed to get token: ${response.status}`);
+        }
+        const data = await response.json();
+        cb(data.token);
+      } catch (error) {
+        console.error('Error fetching OAuth token:', error);
+        // Fallback to initial token if backend call fails
+        cb(initialToken);
+      }
+    }
+
     // Spotify Web Playback SDK initialization
     window.onSpotifyWebPlaybackSDKReady = () => {
       updateStatus('Spotify SDK loaded, creating player...', 'success');
 
       const player = new Spotify.Player({
         name: playerName,
-        getOAuthToken: cb => { cb(token); },
+        getOAuthToken: getOAuthToken,
         volume: 0.5
       });
 
