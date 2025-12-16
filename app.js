@@ -351,7 +351,7 @@ app.post('/api/players/:name/playback-started', async (req, res) => {
   const haEntityId = playerInstance.haEntityId;
   const haSourceId = account.haSourceId;
 
-  if (haEntityId || haSourceId) {
+  if (haEntityId) {
     await callHomeAssistantWebhook(haEntityId, haSourceId);
   }
 

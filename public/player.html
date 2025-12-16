@@ -179,6 +179,7 @@
         );
 
         // Notify backend when playback starts
+        // Note: We intentionally don't await to keep the notification non-blocking
         if (isPlaying && !hasNotifiedPlaybackStart) {
           hasNotifiedPlaybackStart = true;
           notifyPlaybackStarted();
