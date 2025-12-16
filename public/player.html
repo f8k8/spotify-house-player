@@ -68,6 +68,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const playerName = urlParams.get('playerName') || 'Unknown';
     const accountName = urlParams.get('accountName') || 'Unknown';
+    const playerInstanceName = urlParams.get('playerInstanceName') || 'Unknown';
     document.getElementById('account-name').textContent = playerName;
 
     // Get access token from window context (set by puppeteer)
@@ -194,7 +195,7 @@
       async function notifyPlaybackStarted() {
         try {
           console.log('Notifying backend that playback has started');
-          const response = await fetch(`/api/players/${accountName}/playback-started`, {
+          const response = await fetch(`/api/players/${playerInstanceName}/playback-started`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -215,7 +216,7 @@
       async function notifyPlaybackStopped() {
         try {
           console.log('Notifying backend that playback has stopped');
-          const response = await fetch(`/api/players/${accountName}/playback-stopped`, {
+          const response = await fetch(`/api/players/${playerInstanceName}/playback-stopped`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

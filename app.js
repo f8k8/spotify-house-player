@@ -269,7 +269,7 @@ app.post('/api/players/:name/launch', async (req, res) => {
 
   try {
     // Launch headless browser with player
-    const browser = await launchPlayerInstance(accountName, account.token, displayName, audioDestination);
+    const browser = await launchPlayerInstance(name, accountName, account.token, displayName, audioDestination);
     playerInstances.set(name, {
       browser,
       accountName,
@@ -594,7 +594,7 @@ async function turnOffHomeAssistantMediaPlayer(entityId) {
 }
 
 // Helper function to launch a player instance in headless browser
-async function launchPlayerInstance(accountName, accessToken, displayName, audioDestination) {
+async function launchPlayerInstance(playerInstanceName, accountName, accessToken, displayName, audioDestination) {
   // Allow running in non-headless mode for debugging
   const headless = process.env.DEBUG_HEADLESS !== 'false';
   
@@ -617,7 +617,7 @@ async function launchPlayerInstance(accountName, accessToken, displayName, audio
 
   // Navigate to player page
   const playerName = displayName || accountName;
-  const playerUrl = `http://localhost:${PORT}/player.html?playerName=${encodeURIComponent(playerName)}&accountName=${encodeURIComponent(accountName)}`;
+  const playerUrl = `http://localhost:${PORT}/player.html?playerName=${encodeURIComponent(playerName)}&accountName=${encodeURIComponent(accountName)}&playerInstanceName=${encodeURIComponent(playerInstanceName)}`;
   await page.goto(playerUrl, { waitUntil: 'networkidle2' });
 
   console.log(`Player instance launched for account: ${accountName} with display name: ${playerName}`);
