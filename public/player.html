@@ -156,10 +156,14 @@
         updatePlayerState('Not Ready');
       });
 
+      // Track whether we've notified about playback starting
+      let hasNotifiedPlaybackStart = false;
+
       // Player state changed
       player.addListener('player_state_changed', (state) => {
         if (!state) {
           updatePlayerState('No active playback');
+          hasNotifiedPlaybackStart = false;
           return;
         }
 
@@ -173,7 +177,35 @@
             ? `Playing: ${track.name} by ${track.artists.map(a => a.name).join(', ')}` 
             : `Paused: ${track.name}`
         );
+
+        // Notify backend when playback starts
+        // Note: We intentionally don't await to keep the notification non-blocking
+        if (isPlaying && !hasNotifiedPlaybackStart) {
+          hasNotifiedPlaybackStart = true;
+          notifyPlaybackStarted();
+        }
       });
+
+      // Function to notify backend that playback has started
+      async function notifyPlaybackStarted() {
+        try {
+          console.log('Notifying backend that playback has started');
+          const response = await fetch(`/api/players/${accountName}/playback-started`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            console.log('Backend notified successfully');
+          } else {
+            console.warn('Failed to notify backend:', response.status);
+          }
+        } catch (error) {
+          console.error('Error notifying backend:', error);
+        }
+      }
 
       // Connect to the player
       player.connect().then(success => {
