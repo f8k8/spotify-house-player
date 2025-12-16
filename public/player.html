@@ -163,6 +163,10 @@
       player.addListener('player_state_changed', (state) => {
         if (!state) {
           updatePlayerState('No active playback');
+          // If we had an active playback before, notify that it has stopped
+          if (hasNotifiedPlaybackStart) {
+            notifyPlaybackStopped();
+          }
           hasNotifiedPlaybackStart = false;
           return;
         }
@@ -204,6 +208,27 @@
           }
         } catch (error) {
           console.error('Error notifying backend:', error);
+        }
+      }
+
+      // Function to notify backend that playback has stopped
+      async function notifyPlaybackStopped() {
+        try {
+          console.log('Notifying backend that playback has stopped');
+          const response = await fetch(`/api/players/${accountName}/playback-stopped`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            console.log('Backend notified of playback stop successfully');
+          } else {
+            console.warn('Failed to notify backend of playback stop:', response.status);
+          }
+        } catch (error) {
+          console.error('Error notifying backend of playback stop:', error);
         }
       }
 

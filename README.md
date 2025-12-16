@@ -139,7 +139,7 @@ curl -X DELETE http://localhost:3000/api/players/living-room
 
 ## Home Assistant Integration
 
-This application can automatically notify Home Assistant when playback starts on a player. This is useful for automating speaker/amplifier power management and source selection.
+This application can automatically notify Home Assistant when playback starts or stops on a player. This is useful for automating speaker/amplifier power management and source selection.
 
 ### Setup
 
@@ -169,7 +169,13 @@ When playback starts on a player:
    - Turn on the media player (using `media_player.turn_on` service)
    - Set its source to the configured `haSourceId` (using `media_player.select_source` service)
 
-This ensures your amplifier/receiver automatically switches to the correct input when you start playing music on a Spotify player.
+When playback stops on a player:
+1. The player detects the state change (when playback ends or the queue is empty)
+2. It notifies the backend via `/api/players/:name/playback-stopped`
+3. The backend calls Home Assistant to:
+   - Turn off the media player (using `media_player.turn_off` service)
+
+This ensures your amplifier/receiver automatically switches to the correct input when you start playing music, and turns off when playback stops, providing complete automated power management.
 
 ### Example Configuration
 
@@ -194,9 +200,9 @@ curl -X POST http://localhost:3000/api/players/living-room/launch \
   }'
 ```
 
-Now when you start playing music through the "Living Room Speaker" device in Spotify:
-1. Your Home Assistant media player `media_player.living_room_amplifier` will be turned on
-2. Its source will be set to "Spotify Living Room"
+Now when you use the "Living Room Speaker" device in Spotify:
+1. **On playback start**: Your Home Assistant media player `media_player.living_room_amplifier` will be turned on and its source will be set to "Spotify Living Room"
+2. **On playback stop**: Your Home Assistant media player will be automatically turned off
 
 ## API Endpoints
 
@@ -210,6 +216,7 @@ Now when you start playing music through the "Living Room Speaker" device in Spo
 | `DELETE` | `/api/players/:name` | Stop player for account |
 | `GET` | `/api/players` | List running players |
 | `POST` | `/api/players/:name/playback-started` | Internal endpoint called by player when playback starts |
+| `POST` | `/api/players/:name/playback-stopped` | Internal endpoint called by player when playback stops |
 
 ## Audio Destination Configuration
 

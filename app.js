@@ -358,6 +358,36 @@ app.post('/api/players/:name/playback-started', async (req, res) => {
   res.json({ message: 'Playback start notification received' });
 });
 
+/**
+ * Notify that playback has stopped on a player
+ * POST /api/players/:name/playback-stopped
+ */
+app.post('/api/players/:name/playback-stopped', async (req, res) => {
+  const { name } = req.params;
+
+  const account = accounts[name];
+  const playerInstance = playerInstances.get(name);
+
+  if (!account) {
+    return res.status(404).json({ error: 'Account not found' });
+  }
+
+  if (!playerInstance) {
+    return res.status(404).json({ error: 'Player instance not found' });
+  }
+
+  console.log(`Playback stopped on player: ${name}`);
+
+  // Turn off Home Assistant media player
+  const haEntityId = playerInstance.haEntityId;
+
+  if (haEntityId) {
+    await turnOffHomeAssistantMediaPlayer(haEntityId);
+  }
+
+  res.json({ message: 'Playback stop notification received' });
+});
+
 // Helper function to escape HTML entities to prevent XSS
 function escapeHtml(text) {
   const map = {
@@ -515,6 +545,48 @@ async function callHomeAssistantWebhook(entityId, sourceId) {
   }
 }
 
+// Helper function to turn off Home Assistant media player
+async function turnOffHomeAssistantMediaPlayer(entityId) {
+  const haUrl = process.env.HA_URL;
+  const haToken = process.env.HA_TOKEN;
+
+  if (!haUrl || !haToken) {
+    console.log('Home Assistant URL or token not configured, skipping turn off');
+    return;
+  }
+
+  if (!entityId) {
+    console.log('No Home Assistant entity ID specified for this player, skipping turn off');
+    return;
+  }
+
+  try {
+    console.log(`Turning off Home Assistant media player: entity=${entityId}`);
+
+    const turnOffUrl = `${haUrl}/api/services/media_player/turn_off`;
+    const turnOffResponse = await fetch(turnOffUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${haToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        entity_id: entityId
+      })
+    });
+
+    if (!turnOffResponse.ok) {
+      const errorText = await turnOffResponse.text();
+      console.error(`Failed to turn off Home Assistant media player: ${turnOffResponse.status} - ${errorText}`);
+      return;
+    }
+
+    console.log(`Successfully turned off Home Assistant media player: ${entityId}`);
+  } catch (error) {
+    console.error('Error turning off Home Assistant media player:', error);
+  }
+}
+
 // Helper function to launch a player instance in headless browser
 async function launchPlayerInstance(accountName, accessToken, displayName, audioDestination) {
   // Allow running in non-headless mode for debugging
@@ -563,7 +635,9 @@ app.get('/', (req, res) => {
       'POST /api/players/:name/launch': 'Launch player for account',
       'DELETE /api/players/:name': 'Stop player for account',
       'GET /api/players': 'List running players',
-      'GET /callback': 'OAuth callback (used internally)'
+      'GET /callback': 'OAuth callback (used internally)',
+      'POST /api/players/:name/playback-started': 'Notify that playback has started on a player',
+      'POST /api/players/:name/playback-stopped': 'Notify that playback has stopped on a player'
     }
   });
 });
