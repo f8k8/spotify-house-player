@@ -158,7 +158,6 @@
 
       // Track whether we've notified about playback starting
       let hasNotifiedPlaybackStart = false;
-      let lastPlayingState = false;
 
       // Player state changed
       player.addListener('player_state_changed', (state) => {
@@ -169,7 +168,6 @@
             notifyPlaybackStopped();
           }
           hasNotifiedPlaybackStart = false;
-          lastPlayingState = false;
           return;
         }
 
@@ -190,9 +188,6 @@
           hasNotifiedPlaybackStart = true;
           notifyPlaybackStarted();
         }
-
-        // Track the last playing state
-        lastPlayingState = isPlaying;
       });
 
       // Function to notify backend that playback has started
