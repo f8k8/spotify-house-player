@@ -57,10 +57,10 @@ const playerInstances = new Map();
 /**
  * Add a new account endpoint
  * POST /api/accounts
- * Body: { name: string, clientId: string, clientSecret: string, redirectUri: string }
+ * Body: { name: string, clientId: string, clientSecret: string, redirectUri: string, haSourceId: string }
  */
 app.post('/api/accounts', async (req, res) => {
-  const { name, clientId, clientSecret, redirectUri } = req.body;
+  const { name, clientId, clientSecret, redirectUri, haSourceId } = req.body;
 
   if (!name || !clientId || !clientSecret) {
     return res.status(400).json({ error: 'Name, clientId, and clientSecret are required' });
@@ -78,7 +78,8 @@ app.post('/api/accounts', async (req, res) => {
     redirectUri: redirectUri || 'http://localhost:3000/callback',
     authenticated: false,
     token: null,
-    refreshToken: null
+    refreshToken: null,
+    haSourceId: haSourceId || null
   };
 
   saveTokens();
@@ -245,11 +246,11 @@ app.get('/callback', async (req, res) => {
 /**
  * Launch player instance for an account
  * POST /api/players/:name/launch
- * Body: { accountName: string, displayName: string, audioDestination: string }
+ * Body: { accountName: string, displayName: string, audioDestination: string, haEntityId: string }
  */
 app.post('/api/players/:name/launch', async (req, res) => {
   const { name } = req.params;
-  const { accountName, displayName, audioDestination } = req.body;
+  const { accountName, displayName, audioDestination, haEntityId } = req.body;
 
   const account = accounts[name];
 
@@ -272,14 +273,16 @@ app.post('/api/players/:name/launch', async (req, res) => {
       browser,
       audioDestination: audioDestination || 'default',
       displayName: displayName || name,
-      launchedAt: new Date()
+      launchedAt: new Date(),
+      haEntityId: haEntityId || null
     });
 
     res.json({
       message: 'Player instance launched successfully',
       name,
       displayName: displayName || name,
-      audioDestination: audioDestination || 'default'
+      audioDestination: audioDestination || 'default',
+      haEntityId: haEntityId || null
     });
   } catch (error) {
     console.error('Error launching player:', error);
@@ -322,6 +325,37 @@ app.get('/api/players', (req, res) => {
     launchedAt: instance.launchedAt
   }));
   res.json({ players });
+});
+
+/**
+ * Notify that playback has started on a player
+ * POST /api/players/:name/playback-started
+ */
+app.post('/api/players/:name/playback-started', async (req, res) => {
+  const { name } = req.params;
+
+  const account = accounts[name];
+  const playerInstance = playerInstances.get(name);
+
+  if (!account) {
+    return res.status(404).json({ error: 'Account not found' });
+  }
+
+  if (!playerInstance) {
+    return res.status(404).json({ error: 'Player instance not found' });
+  }
+
+  console.log(`Playback started on player: ${name}`);
+
+  // Call Home Assistant webhook
+  const haEntityId = playerInstance.haEntityId;
+  const haSourceId = account.haSourceId;
+
+  if (haEntityId || haSourceId) {
+    await callHomeAssistantWebhook(haEntityId, haSourceId);
+  }
+
+  res.json({ message: 'Playback start notification received' });
 });
 
 // Helper function to escape HTML entities to prevent XSS
@@ -412,6 +446,73 @@ async function refreshAccessToken(refreshToken, clientId, clientSecret) {
   }
 
   return await response.json();
+}
+
+// Helper function to call Home Assistant webhook
+async function callHomeAssistantWebhook(entityId, sourceId) {
+  const haUrl = process.env.HA_URL;
+  const haToken = process.env.HA_TOKEN;
+
+  if (!haUrl || !haToken) {
+    console.log('Home Assistant URL or token not configured, skipping webhook');
+    return;
+  }
+
+  if (!entityId) {
+    console.log('No Home Assistant entity ID specified for this player, skipping webhook');
+    return;
+  }
+
+  try {
+    console.log(`Calling Home Assistant webhook: entity=${entityId}, source=${sourceId || 'N/A'}`);
+
+    // First, turn on the media player
+    const turnOnUrl = `${haUrl}/api/services/media_player/turn_on`;
+    const turnOnResponse = await fetch(turnOnUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${haToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        entity_id: entityId
+      })
+    });
+
+    if (!turnOnResponse.ok) {
+      const errorText = await turnOnResponse.text();
+      console.error(`Failed to turn on Home Assistant media player: ${turnOnResponse.status} - ${errorText}`);
+      return;
+    }
+
+    console.log(`Successfully turned on Home Assistant media player: ${entityId}`);
+
+    // If sourceId is provided, set the source
+    if (sourceId) {
+      const selectSourceUrl = `${haUrl}/api/services/media_player/select_source`;
+      const selectSourceResponse = await fetch(selectSourceUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${haToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          source: sourceId
+        })
+      });
+
+      if (!selectSourceResponse.ok) {
+        const errorText = await selectSourceResponse.text();
+        console.error(`Failed to set Home Assistant source: ${selectSourceResponse.status} - ${errorText}`);
+        return;
+      }
+
+      console.log(`Successfully set Home Assistant source to: ${sourceId}`);
+    }
+  } catch (error) {
+    console.error('Error calling Home Assistant webhook:', error);
+  }
 }
 
 // Helper function to launch a player instance in headless browser
