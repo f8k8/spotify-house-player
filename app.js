@@ -636,8 +636,8 @@ app.get('/', (req, res) => {
       'DELETE /api/players/:name': 'Stop player for account',
       'GET /api/players': 'List running players',
       'GET /callback': 'OAuth callback (used internally)',
-      'POST /api/players/:name/playback-started': 'Internal endpoint called when playback starts',
-      'POST /api/players/:name/playback-stopped': 'Internal endpoint called when playback stops'
+      'POST /api/players/:name/playback-started': 'Notify that playback has started on a player',
+      'POST /api/players/:name/playback-stopped': 'Notify that playback has stopped on a player'
     }
   });
 });

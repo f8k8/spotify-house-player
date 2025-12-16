@@ -165,7 +165,7 @@
         if (!state) {
           updatePlayerState('No active playback');
           // If we had an active playback before, notify that it has stopped
-          if (hasNotifiedPlaybackStart || lastPlayingState) {
+          if (hasNotifiedPlaybackStart) {
             notifyPlaybackStopped();
           }
           hasNotifiedPlaybackStart = false;
