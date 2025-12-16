@@ -21,8 +21,8 @@ services:
     volumes:
       # Persistent token storage
       - ./tokens.json:/app/tokens.json
-      # Optional: Mount custom Chrome user data directory
-      - chrome-data:/home/appuser/.config/google-chrome
+      # Optional: Mount custom Chromium user data directory
+      - chrome-data:/home/appuser/.config/chromium
     
     devices:
       # Audio device passthrough (required for audio playback)
