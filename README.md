@@ -10,6 +10,7 @@ A Node.js application that uses the Spotify Web Playback SDK in headless browser
 - 🤖 Headless browser-based playback using Puppeteer
 - 🔌 REST API for managing accounts and players
 - 💾 Persistent token storage
+- 🏠 Home Assistant integration with automatic webhook notifications
 
 ## Prerequisites
 
@@ -48,6 +49,8 @@ Available environment variables:
   - Windows: `C:\Program Files\Google\Chrome\Application\chrome.exe`
 - `PORT` - Server port (default: 3000)
 - `DEBUG_HEADLESS` - Set to `false` to run Chrome instances in visible windows for debugging (default: true)
+- `HA_URL` - Optional - Home Assistant URL (e.g., `http://homeassistant.local:8123`)
+- `HA_TOKEN` - Optional - Home Assistant long-lived access token
 
 ### 4. Start the Server
 
@@ -70,9 +73,17 @@ curl -X POST http://localhost:3000/api/accounts \
     "name": "living-room",
     "clientId": "YOUR_SPOTIFY_CLIENT_ID",
     "clientSecret": "YOUR_SPOTIFY_CLIENT_SECRET",
-    "redirectUri": "http://localhost:3000/callback"
+    "redirectUri": "http://localhost:3000/callback",
+    "haSourceId": "Spotify Living Room"
   }'
 ```
+
+Parameters:
+- `name` - Unique identifier for the account
+- `clientId` - Spotify app client ID
+- `clientSecret` - Spotify app client secret
+- `redirectUri` - OAuth redirect URI (default: `http://localhost:3000/callback`)
+- `haSourceId` - Optional - Home Assistant source name for this account
 
 Response will include an `authUrl` that you need to visit to authenticate.
 
@@ -90,9 +101,16 @@ curl -X POST http://localhost:3000/api/players/living-room/launch \
   -d '{
     "accountName": "living-room",
     "displayName": "Living Room Speaker",
-    "audioDestination": "default"
+    "audioDestination": "default",
+    "haEntityId": "media_player.living_room_amplifier"
   }'
 ```
+
+Parameters:
+- `accountName` - Name of the account to use
+- `displayName` - Display name for the Spotify device
+- `audioDestination` - Audio output device (default: `"default"`)
+- `haEntityId` - Optional - Home Assistant media player entity ID
 
 The player will now be available in your Spotify app as a device with the specified display name (e.g., "Living Room Speaker").
 
@@ -119,6 +137,67 @@ curl http://localhost:3000/api/players
 curl -X DELETE http://localhost:3000/api/players/living-room
 ```
 
+## Home Assistant Integration
+
+This application can automatically notify Home Assistant when playback starts on a player. This is useful for automating speaker/amplifier power management and source selection.
+
+### Setup
+
+1. **Create a Long-Lived Access Token in Home Assistant**:
+   - Go to your Home Assistant profile page
+   - Scroll to "Long-Lived Access Tokens"
+   - Click "Create Token"
+   - Copy the generated token
+
+2. **Configure Environment Variables**:
+   Add to your `.env` file:
+   ```
+   HA_URL=http://homeassistant.local:8123
+   HA_TOKEN=your_long_lived_access_token_here
+   ```
+
+3. **Configure Your Accounts and Players**:
+   - When adding an account, specify the `haSourceId` parameter (the source name your HA media player should select)
+   - When launching a player, specify the `haEntityId` parameter (the entity ID of your HA media player)
+
+### How It Works
+
+When playback starts on a player:
+1. The player detects the state change
+2. It notifies the backend via `/api/players/:name/playback-started`
+3. The backend calls Home Assistant to:
+   - Turn on the media player (using `media_player.turn_on` service)
+   - Set its source to the configured `haSourceId` (using `media_player.select_source` service)
+
+This ensures your amplifier/receiver automatically switches to the correct input when you start playing music on a Spotify player.
+
+### Example Configuration
+
+```bash
+# Add account with HA source ID
+curl -X POST http://localhost:3000/api/accounts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "living-room",
+    "clientId": "YOUR_CLIENT_ID",
+    "clientSecret": "YOUR_CLIENT_SECRET",
+    "haSourceId": "Spotify Living Room"
+  }'
+
+# Launch player with HA entity ID
+curl -X POST http://localhost:3000/api/players/living-room/launch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accountName": "living-room",
+    "displayName": "Living Room Speaker",
+    "haEntityId": "media_player.living_room_amplifier"
+  }'
+```
+
+Now when you start playing music through the "Living Room Speaker" device in Spotify:
+1. Your Home Assistant media player `media_player.living_room_amplifier` will be turned on
+2. Its source will be set to "Spotify Living Room"
+
 ## API Endpoints
 
 | Method | Endpoint | Description |
@@ -130,6 +209,7 @@ curl -X DELETE http://localhost:3000/api/players/living-room
 | `POST` | `/api/players/:name/launch` | Launch player for account |
 | `DELETE` | `/api/players/:name` | Stop player for account |
 | `GET` | `/api/players` | List running players |
+| `POST` | `/api/players/:name/playback-started` | Internal endpoint called by player when playback starts |
 
 ## Audio Destination Configuration
 
