@@ -14,6 +14,13 @@ A Node.js application that uses the Spotify Web Playback SDK in headless browser
 
 ## Prerequisites
 
+### For Docker Compose (Recommended)
+- Docker and Docker Compose installed on your system
+- A Spotify Premium account (required for Web Playback SDK)
+- Spotify Developer App credentials (Client ID and Client Secret)
+- Audio device access (for playback)
+
+### For Native Installation
 - Node.js (v18 or higher) - Required for native fetch API support
 - Chrome or Chromium browser installed on your system
 - A Spotify Premium account (required for Web Playback SDK)
@@ -21,20 +28,74 @@ A Node.js application that uses the Spotify Web Playback SDK in headless browser
 
 ## Setup
 
-### 1. Create a Spotify Developer App
+You can run this application either directly on your host machine or using Docker Compose.
+
+### Option A: Docker Compose (Recommended)
+
+Docker Compose provides an easy way to run the application with all dependencies included.
+
+#### 1. Create a Spotify Developer App
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Create a new app
 3. Note your Client ID and Client Secret
 4. Add `http://localhost:3000/callback` to your Redirect URIs in the app settings
 
-### 2. Install Dependencies
+#### 2. Configure Environment
+
+Copy `.env.example` to `.env` and customize:
+
+```bash
+cp .env.example .env
+```
+
+Available environment variables:
+- `PORT` - Server port (default: 3000)
+- `DEBUG_HEADLESS` - Set to `false` to run Chrome instances in visible windows for debugging (default: true)
+- `HA_URL` - Optional - Home Assistant URL (e.g., `http://homeassistant.local:8123`)
+- `HA_TOKEN` - Optional - Home Assistant long-lived access token
+
+**Note:** `CHROME_EXECUTABLE_PATH` is automatically set in the Docker container and doesn't need to be configured.
+
+#### 3. Start the Application
+
+```bash
+docker compose up -d
+```
+
+The application will be available at `http://localhost:3000`.
+
+To view logs:
+```bash
+docker compose logs -f
+```
+
+To stop the application:
+```bash
+docker compose down
+```
+
+**Important Notes:**
+- The `tokens.json` file will be created in your project directory for persistent token storage
+- Audio playback requires access to `/dev/snd` which is mounted automatically
+- The container runs with increased shared memory (2GB) for Chrome stability
+
+### Option B: Native Installation
+
+#### 1. Create a Spotify Developer App
+
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Create a new app
+3. Note your Client ID and Client Secret
+4. Add `http://localhost:3000/callback` to your Redirect URIs in the app settings
+
+#### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Configure Environment
+#### 3. Configure Environment
 
 Copy `.env.example` to `.env` and customize:
 
@@ -52,7 +113,7 @@ Available environment variables:
 - `HA_URL` - Optional - Home Assistant URL (e.g., `http://homeassistant.local:8123`)
 - `HA_TOKEN` - Optional - Home Assistant long-lived access token
 
-### 4. Start the Server
+#### 4. Start the Server
 
 ```bash
 npm start

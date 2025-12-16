@@ -1,0 +1,52 @@
+services:
+  spotify-house-player:
+    build: .
+    container_name: spotify-house-player
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # Server Configuration
+      - PORT=${PORT:-3000}
+      
+      # Chrome Settings
+      - CHROME_EXECUTABLE_PATH=/usr/bin/chromium
+      
+      # Debug Settings
+      - DEBUG_HEADLESS=${DEBUG_HEADLESS:-true}
+      
+      # Home Assistant Integration (Optional)
+      - HA_URL=${HA_URL:-}
+      - HA_TOKEN=${HA_TOKEN:-}
+    
+    volumes:
+      # Persistent token storage
+      - ./tokens.json:/app/tokens.json
+      # Optional: Mount custom Chromium user data directory
+      - chrome-data:/home/appuser/.config/chromium
+    
+    devices:
+      # Audio device passthrough (required for audio playback)
+      - /dev/snd:/dev/snd
+    
+    # Required for audio to work properly
+    group_add:
+      - audio
+    
+    # Increase shared memory size for Chrome
+    shm_size: 2gb
+    
+    # Security options for Chrome to run in container
+    security_opt:
+      - seccomp:unconfined
+    
+    # Capability for Chrome sandbox
+    cap_add:
+      - SYS_ADMIN
+    
+    restart: unless-stopped
+    
+    # Optional: Use host network mode if you need access to local network devices
+    # network_mode: host
+
+volumes:
+  chrome-data:
