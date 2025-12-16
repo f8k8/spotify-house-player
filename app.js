@@ -272,7 +272,7 @@ app.post('/api/players/:name/launch', async (req, res) => {
     const browser = await launchPlayerInstance(accountName, account.token, displayName, audioDestination);
     playerInstances.set(name, {
       browser,
-      accountName: accountName,
+      accountName,
       audioDestination: audioDestination || 'default',
       displayName: displayName || name,
       launchedAt: new Date(),
