@@ -252,7 +252,8 @@ app.post('/api/players/:name/launch', async (req, res) => {
   const { name } = req.params;
   const { accountName, displayName, audioDestination, haEntityId } = req.body;
 
-  const account = accounts[name];
+  // Use accountName from request body to access the account
+  const account = accounts[accountName];
 
   if (!account) {
     return res.status(404).json({ error: 'Account not found' });
@@ -268,9 +269,10 @@ app.post('/api/players/:name/launch', async (req, res) => {
 
   try {
     // Launch headless browser with player
-    const browser = await launchPlayerInstance(name, account.token, displayName, audioDestination);
+    const browser = await launchPlayerInstance(name, accountName, account.token, displayName, audioDestination);
     playerInstances.set(name, {
       browser,
+      accountName,
       audioDestination: audioDestination || 'default',
       displayName: displayName || name,
       launchedAt: new Date(),
@@ -334,15 +336,17 @@ app.get('/api/players', (req, res) => {
 app.post('/api/players/:name/playback-started', async (req, res) => {
   const { name } = req.params;
 
-  const account = accounts[name];
   const playerInstance = playerInstances.get(name);
-
-  if (!account) {
-    return res.status(404).json({ error: 'Account not found' });
-  }
 
   if (!playerInstance) {
     return res.status(404).json({ error: 'Player instance not found' });
+  }
+
+  // Use accountName from player instance
+  const account = accounts[playerInstance.accountName];
+
+  if (!account) {
+    return res.status(404).json({ error: 'Account not found' });
   }
 
   console.log(`Playback started on player: ${name}`);
@@ -365,15 +369,17 @@ app.post('/api/players/:name/playback-started', async (req, res) => {
 app.post('/api/players/:name/playback-stopped', async (req, res) => {
   const { name } = req.params;
 
-  const account = accounts[name];
   const playerInstance = playerInstances.get(name);
-
-  if (!account) {
-    return res.status(404).json({ error: 'Account not found' });
-  }
 
   if (!playerInstance) {
     return res.status(404).json({ error: 'Player instance not found' });
+  }
+
+  // Use accountName from player instance
+  const account = accounts[playerInstance.accountName];
+
+  if (!account) {
+    return res.status(404).json({ error: 'Account not found' });
   }
 
   console.log(`Playback stopped on player: ${name}`);
@@ -588,7 +594,7 @@ async function turnOffHomeAssistantMediaPlayer(entityId) {
 }
 
 // Helper function to launch a player instance in headless browser
-async function launchPlayerInstance(accountName, accessToken, displayName, audioDestination) {
+async function launchPlayerInstance(playerInstanceName, accountName, accessToken, displayName, audioDestination) {
   // Allow running in non-headless mode for debugging
   const headless = process.env.DEBUG_HEADLESS !== 'false';
   
@@ -611,7 +617,7 @@ async function launchPlayerInstance(accountName, accessToken, displayName, audio
 
   // Navigate to player page
   const playerName = displayName || accountName;
-  const playerUrl = `http://localhost:${PORT}/player.html?playerName=${encodeURIComponent(playerName)}&accountName=${encodeURIComponent(accountName)}`;
+  const playerUrl = `http://localhost:${PORT}/player.html?playerName=${encodeURIComponent(playerName)}&accountName=${encodeURIComponent(accountName)}&playerInstanceName=${encodeURIComponent(playerInstanceName)}`;
   await page.goto(playerUrl, { waitUntil: 'networkidle2' });
 
   console.log(`Player instance launched for account: ${accountName} with display name: ${playerName}`);
