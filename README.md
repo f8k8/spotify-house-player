@@ -1,3 +1,6 @@
+# NOTE
+This doesn't really work. It was supposed to run headless, but there are issues with the Spotify Web SDK in headless Chromium with DRM. Transferred to using spotifyd instead.
+
 # Spotify House Player
 
 A Node.js application that uses the Spotify Web Playback SDK in headless browsers to create multiple player instances, each authenticated with different Spotify accounts. Uses Puppeteer to manage browser instances and provides a REST API for controlling players.
